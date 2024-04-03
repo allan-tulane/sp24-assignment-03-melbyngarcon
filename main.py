@@ -20,10 +20,53 @@ def MED(S, T):
 
 
 def fast_MED(S, T, MED={}):
-    # TODO -  implement top-down memoization
-    pass
+# Using the provided signature without modification
+
+# Check if the result is already memoized
+  if (S, T) in MED:
+    return MED[(S, T)]
+
+# Base cases
+  if not S:
+    MED[(S, T)] = len(T)
+  elif not T:
+    MED[(S, T)] = len(S)
+  elif S[0] == T[0]:  # No edit needed for matching characters
+    MED[(S, T)] = fast_MED(S[1:], T[1:], MED)
+  else:
+    # Calculate costs for insert, delete, and substitute operations
+    insert_cost = 1 + fast_MED(S, T[1:], MED)
+    delete_cost = 1 + fast_MED(S[1:], T, MED)
+    substitute_cost = 1 + fast_MED(S[1:], T[1:], MED)
+    MED[(S, T)] = min(insert_cost, delete_cost, substitute_cost)
+
+  return MED[(S, T)]
 
 def fast_align_MED(S, T, MED={}):
-    # TODO - keep track of alignment
-    pass
+# Check if the result is already memoized
+  if (S, T) in MED:
+    return MED[(S, T)]
+
+# Base cases
+  if not S:
+    MED[(S, T)] = (len(T), "-" * len(T), T)
+    return MED[(S, T)]
+  if not T:
+    MED[(S, T)] = (len(S), S, "-" * len(S))
+    return MED[(S, T)]
+
+  if S[0] == T[0]:
+    cost, alignS, alignT = fast_align_MED(S[1:], T[1:], MED)
+    MED[(S, T)] = (cost, S[0] + alignS, T[0] + alignT)
+  else:
+    insert_cost, insert_alignS, insert_alignT = fast_align_MED(S, T[1:], MED)
+    delete_cost, delete_alignS, delete_alignT = fast_align_MED(S[1:], T, MED)
+    substitute_cost, substitute_alignS, substitute_alignT = fast_align_MED(S[1:], T[1:], MED)
+
+    # Choose the operation with the minimum cost
+  costs = [(insert_cost + 1, "-" + insert_alignS, T[0] + insert_alignT),(delete_cost + 1, S[0] + delete_alignS, "-" + delete_alignT),
+             (substitute_cost + 1, S[0] + substitute_alignS, T[0] + substitute_alignT)]
+  MED[(S, T)] = min(costs, key=lambda x: x[0])
+
+  return MED[(S, T)]
 
