@@ -1,5 +1,3 @@
-import math, queue
-from collections import Counter
 
 ####### Problem 3 #######
 
@@ -16,7 +14,7 @@ def MED(S, T):
         if (S[0] == T[0]):
             return(MED(S[1:], T[1:]))
         else:
-            return(1 + min(MED(S, T[1:]), MED(S[1:], T)))
+            return(1 + min(MED(S,T[1:]),MED(S[1:],T)))
 
 
 def fast_MED(S, T, MED={}):
@@ -47,14 +45,15 @@ def fast_align_MED(S, T, MED={}):
   if (S, T) in MED:
     return MED[(S, T)]
 
-# Base cases
+# Correct base cases to ensure S and T are not empty
   if not S:
-    MED[(S, T)] = (len(T), "-" * len(T), T)
+    MED[(S, T)] = (len(T), "-" * len(S), T)
     return MED[(S, T)]
   if not T:
-    MED[(S, T)] = (len(S), S, "-" * len(S))
+    MED[(S, T)] = (len(S), S, "-" * len(T))
     return MED[(S, T)]
 
+# Ensure we don't access S[0] or T[0] if S or T is empty (handled by base cases)
   if S[0] == T[0]:
     cost, alignS, alignT = fast_align_MED(S[1:], T[1:], MED)
     MED[(S, T)] = (cost, S[0] + alignS, T[0] + alignT)
@@ -63,10 +62,19 @@ def fast_align_MED(S, T, MED={}):
     delete_cost, delete_alignS, delete_alignT = fast_align_MED(S[1:], T, MED)
     substitute_cost, substitute_alignS, substitute_alignT = fast_align_MED(S[1:], T[1:], MED)
 
-    # Choose the operation with the minimum cost
-  costs = [(insert_cost + 1, "-" + insert_alignS, T[0] + insert_alignT),(delete_cost + 1, S[0] + delete_alignS, "-" + delete_alignT),
-             (substitute_cost + 1, S[0] + substitute_alignS, T[0] + substitute_alignT)]
-  MED[(S, T)] = min(costs, key=lambda x: x[0])
+    costs = [
+        (insert_cost + 1, "-" + insert_alignS, T[0] + insert_alignT),
+        (delete_cost + 1, S[0] + delete_alignS, "-" + delete_alignT),
+        (substitute_cost + 1, S[0] + substitute_alignS, T[0] + substitute_alignT)
+    ]
+
+    MED[(S, T)] = min(costs, key=lambda x: x[0])
 
   return MED[(S, T)]
+for S, T in test_cases:
+  result = fast_MED(S, T)
+  print(f"Minimum Edit Distance between '{S}' and '{T}': {result}")
 
+for S, T in test_cases:
+  cost, alignS, alignT = fast_align_MED(S, T)
+  print(f"Cost: {cost}, Alignment for '{S}': {alignS}, Alignment for '{T}': {alignT}")
