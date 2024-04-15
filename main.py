@@ -33,46 +33,74 @@ def fast_MED(S, T, memo={}):
     substitute_cost = 1 + fast_MED(S[1:], T[1:], memo)
     memo[(S, T)] = min(insert_cost, delete_cost, substitute_cost)
   return memo[(S, T)]
+
 def fast_align_MED(S, T, MED={}):
-      if (S, T) in MED:
-          return MED[(S, T)][1], MED[(S, T)][2]  # Return only the alignment parts
 
-      if not S:
-          alignment = ("-" * len(T), T)
-          MED[(S, T)] = (len(T), *alignment)
-          return alignment
 
-      if not T:
-          alignment = (S, "-" * len(S))
-          MED[(S, T)] = (len(S), *alignment)
-          return alignment
+  if not S:
+    MED[(S, T)] = (len(T), "-" * len(T), T)
+    return "-" * len(T), T
+  if not T:
+    MED[(S, T)] = (len(S), S, "-" * len(S))
+    return S, "-" * len(S)
 
-      if S[0] == T[0]:
-          align_S, align_T = fast_align_MED(S[1:], T[1:], MED)
-          alignment = (S[0] + align_S, T[0] + align_T)
-          MED[(S, T)] = (MED[(S[1:], T[1:])][0], *alignment)
-          return alignment
+  # Handle the case where characters match
+  if S[0] == T[0]:
+    align_S, align_T = fast_align_MED(S[1:], T[1:], MED)
+    alignment = (S[0] + align_S, T[0] + align_T)
+    MED[(S, T)] = (MED[(S[1:], T[1:])][0], *alignment)
+    return alignment
 
+  # Handle the case where characters do not match
+  else:
+    insert_align_S, insert_align_T = fast_align_MED(S, T[1:], MED)
+    delete_align_S, delete_align_T = fast_align_MED(S[1:], T, MED)
+    substitute_align_S, substitute_align_T = fast_align_MED(S[1:], T[1:], MED)
+
+    # Prepend ' ' (space) and '-' to S for insert
+    insert_cost = 1 + MED[(S, T[1:])][0]
+    insert_alignment = (" " + "-" + insert_align_S, T[0] + insert_align_T)
+
+    # Prepend S[0] to S for delete, '-' to T for delete
+    delete_cost = 1 + MED[(S[1:], T)][0]
+    delete_alignment = (S[0] + delete_align_S, "-" + delete_align_T)
+
+    # Align S[0] with T[0] directly for substitution
+    substitute_cost = 1 + MED[(S[1:], T[1:])][0]
+    substitute_alignment = (S[0] + substitute_align_S, T[0] + substitute_align_T)
+
+    costs = [
+        (insert_cost, insert_alignment[0], insert_alignment[1]),
+        (delete_cost, delete_alignment[0], delete_alignment[1]),
+        (substitute_cost, substitute_alignment[0], substitute_alignment[1])
+    ]
+
+    best = min(costs, key=lambda x: x[0])
+
+    # Update MED dictionary to store alignments for all options
+    MED[(S, T)] = (best[0], best[1], best[2], insert_alignment, delete_alignment, substitute_alignment)
+
+    # Return the alignment of the chosen option
+    return best[1], best[2]
+
+def test_fast_align_MED():
+  passed = True
+  for i, (S, T) in enumerate(test_cases):
+      expected_align_S, expected_align_T = alignments[i]
+      align_S, align_T = fast_align_MED(S, T)
+
+      # Checking if the function output matches the expected output
+      if (align_S == expected_align_S) and (align_T == expected_align_T):
+          print(f"Test case {i + 1} passed: ({S}, {T})")
       else:
-          insert_align_S, insert_align_T = "-" + fast_align_MED(S, T[1:], MED)[0], T[0] + fast_align_MED(S, T[1:], MED)[1]
-          insert_cost = 1 + MED.get((S, T[1:]), (float('inf'), None, None))[0]
+          print(f"Test case {i + 1} failed: ({S}, {T})")
+          print(f"  Expected: ({expected_align_S}, {expected_align_T})")
+          print(f"  Received: ({align_S}, {align_T})")
+          passed = False
 
-          delete_align_S, delete_align_T = S[0] + fast_align_MED(S[1:], T, MED)[0], "-" + fast_align_MED(S[1:], T, MED)[1]
-          delete_cost = 1 + MED.get((S[1:], T), (float('inf'), None, None))[0]
+  if passed:
+      print("All tests passed!")
+  else:
+      print("Some tests failed. Check the output above for details.")
 
-          substitute_align_S, substitute_align_T = S[0] + fast_align_MED(S[1:], T[1:], MED)[0], T[0] + fast_align_MED(S[1:], T[1:], MED)[1]
-          substitute_cost = 1 + MED.get((S[1:], T[1:]), (float('inf'), None, None))[0]
-
-          costs = [
-              (insert_cost, insert_align_S, insert_align_T),
-              (delete_cost, delete_align_S, delete_align_T),
-              (substitute_cost, substitute_align_S, substitute_align_T)
-          ]
-
-          best = min(costs, key=lambda x: x[0])
-          MED[(S, T)] = (best[0], best[1], best[2])
-          return best[1], best[2]
-for S, T in test_cases:
-  result = fast_MED(S, T)
-  print(f"Minimum Edit Distance between '{S}' and '{T}': {result}")
-
+test_fast_align_MED()
